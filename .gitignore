@@ -1,0 +1,10 @@
+# All the hidden files but .gitignore
+.*
+!/.gitignore
+
+# Files that are related with LaTeX and such
+*.aux
+*.fdb_latexmk
+*.fls
+*.log
+*.synctex.gz

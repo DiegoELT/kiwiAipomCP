@@ -62,6 +62,179 @@ function(i, n):
         \textbf{Step Four:} Be careful, in CP they are generally avoided since most can be done iteratively, andd they may exceed time and memory. Since every function is alloted a space at the moment it is called, might run into RTE. Use only $O(\lg{n})$ and small $O(n)$ recursions. \\
         \textbf{Step Five:} When there are overlapping branches in the recursion tree we store computed values (DP).
     \section{Dynamic programming 2}
+        \subsection{Longest Common Subsequence}
+            2 strings $S,T$, find the LCS between them. Can be done in $O(S*T)$
+            \begin{lstlisting}
+int LCS(int n, int m) 
+{
+    if (n == 0 or m == 0) return 0;
+    if (vis[n][m]) return memo[n][m];
+    int &ans = memo[n][m] = max(LCS(n-1, m), LCS(n, m-1));
+    if (S[n-1] == T[m-1]) ans = max(ans, 1 + LCS(n-1, m-1));
+    vis[n][m] = 1;
+    return ans;
+}
+            \end{lstlisting}
+            It's trivial that if either of the strings is empty, there's no LCS.\\
+            Next case is that $S[n-1],T[m-1]$ don't match any characters in the other string. If these two match though, we might have a new \texttt{ans}.\\
+            The iterative alternative to this problem is:
+            \begin{lstlisting}
+for (int i = 0; i <= n; ++i) dp[i][0] = 0;
+for (int i = 1; i <= m; ++i) dp[0][i] = 0;
+for (int i = 1; i <= n; ++i) 
+{
+    for (int j = 1; j <= m; ++j) 
+    {
+		if (S[i-1] == T[j-1]) dp[i][j] = 1 + dp[i-1][j-1];
+		else dp[i][j] = max(dp[i][j-1], dp[i-1][j]);
+	}
+}
+            \end{lstlisting}
+            Check that to obtain $(i,j)$ we need to preprocess $(i-1,j)$, $(i,j-1)$ and $(i-1,j-1)$
+        \subsection{Kadane's Algorithm}
+            $O(n)$ for maximum continuous subarray. 
+            \begin{lstlisting}
+int kadane(int pos) 
+{
+	if (pos == n) return 0;
+	if (vis[pos]) return memo[pos];
+	vis[pos] = 1;
+  	return memo[pos] = a[pos] + max(0, kadane(pos+1));
+}
+            \end{lstlisting}    
+            This finds the max sum starting in that position until the end of the array.\\
+            If all were positive, I take all of them. I go checking and if the value adds to the sum, I memo the new value for that pos, otherwise, the memo for that pos is the same as the previous.\\
+            We run this code for all pos, and obtain the maximum.\\
+            Iteratively can be done as:
+            \begin{lstlisting}
+dp[0] = 0;
+for (int i = 1; i <= n; ++i)
+	dp[i] = a[i] + max(0, dp[i-1]);
+            \end{lstlisting}
+            It is also useful to \textbf{Check the Wikipedia implementation of it.}
+            \begin{lstlisting}
+def max_subarray(numbers):
+    best_sum = 0  # or: float('-inf')
+    current_sum = 0
+    for x in numbers:
+        current_sum = max(0, current_sum + x)
+        best_sum = max(best_sum, current_sum)
+    return best_sum
+            \end{lstlisting}
+        \subsection{Levenshtein's Distance}
+            Two strings $S,T$, minimum amount of changes (elimination, change value, or adding) to make $S == T$. Can be solved recursively:
+            \begin{lstlisting}
+int editDistance(int n, int m) 
+{ 
+	if (n == 0 or m == 0) return n+m;
+	if (vis[n][m]) return memo[n][m];
+	int &ans = memo[n][m] = 1e9; //infinity
+	ans = min(ans, editDistance(n-1, m-1) + s[n-1] != t[m-1]); // Change if necessary
+	ans = min(ans, editDistance(n-1, m) + 1); // Eliminate the char
+	ans = min(ans, editDistance(n, m-1) + 1); // Add a char after the n character
+	vis[n][m] = 1;
+	return ans;
+}
+            \end{lstlisting}
+            So if either string is empty, answer is the length of the other string (delete all its elements).\\
+            If those strings have already been checked, return its memo. And otherwise, start at infinity:
+            \begin{itemize}
+                \item We first check the $editDistance$ of the strings $-1$ char, and then check if the last chars are different.
+                \item Then we check if we can eliminate a char from $S$
+                \item And finally if we can add a char to $S$
+            \end{itemize}
+            The iterative implementation is:
+            \begin{lstlisting}
+dp[0][0] = 0;
+for (int i = 1; i <= n; ++i) dp[i][0] = i;
+for (int i = 1; i <= m; ++i) dp[0][i] = i;
+for (int i = 1; i <= n; ++i) {
+	for (int j = 1; j <= m; ++j) {
+		dp[i][j] = min(
+			dp[i-1, j-1] + s[i-1] != t[j-1],
+			min(dp[i-1][j], dp[i][j-1]) + 1
+		);
+	}
+}
+            \end{lstlisting}
+        \subsection{Rod cutting}
+            Rod of lenght $n$, size $p_i$ and cost $r_i$ to cut each of the pieces. It's easy to see with an example:
+            \begin{lstlisting}
+length   | 1   2   3   4   5   6   7   8  
+--------------------------------------------
+price    | 3   5   8   9  10  17  17  20
+            \end{lstlisting}
+            In which case we can máximize the value (24 with 8 cuts of 1 lenght, or minimize it with 1 cut of lenght 8). The implementation for this first case is the following:
+            \begin{lstlisting}
+int rodCutting(int n) 
+{
+	if (n == 0) return 0;
+	if (vis[n]) return memo[n];
+	int &ans = memo[n] = INT_MAX;
+    for (int i = 0; i < m; ++i) 
+    {
+		if (n >= p[i])
+			ans = min(ans, r[i] + rodCutting(n-p[i]));
+	}
+	vis[n] = 1;
+	return ans;
+}
+            \end{lstlisting}
+            This is an implementation of a program in which $n$ is the length of the rod, but $m$ is the amount of ways you can cut it. $m \neq n$ is a possibility.
+            So as always, the base is that if there's no rod, the price is 0, and if we already have the value, we return it.\\
+            Then we start with the value on infinity. If $n$ is bigger than the size we are currently checking. We decided between the minimum of our current answer or, \textbf{the price of cutting the rod, plus the price of cutting a rod of minus that size}.\\
+            Then we just add it to visited and we are done.\\
+            Iteratively can be done as:
+            \begin{lstlisting}
+dp[0] = 0;
+for (int i = 1; i <= n; ++i) dp[i] = 1e9;
+for (int i = 0; i < m; ++i)
+{
+	for (int j = p[i]; j <= n; ++j) 
+		dp[j] = min(dp[j], dp[j-p[i]] + r[i]);
+	
+}
+            \end{lstlisting}
+            Which is fairly similar.\\
+            It is important to note that the \texttt{dp} array could be separated into 2 arrays with the same results. In its current state it has the states of the previous calc and the new ones. So be careful.
+
+        \subsection{Longest Incresing Subsequence}
+            Array of integers, the recursive implementation is the following.
+            \begin{lstlisting}
+void LIS(int pos) 
+{
+	if (n == 0) return 0;
+	if (vis[pos]) return memo[pos];
+	int &ans = memo[pos] = 1;
+    for (int i = pos+1; i < n; ++i) 
+    {
+		if (a[pos] < a[i])
+			ans = max(ans, 1 + LIS(i));
+	}
+	vis[pos] = 1;
+	return ans;
+}
+            \end{lstlisting} 
+            This code finds the maximum subarray starting at a position. So we have to save the biggest result of that function so far with a for ($O(n^2)$ in the end).\\
+            \textbf{New plan:} $dp[k]$ will be the smalles value of a growing subsequence with $k$ elements. At the start $dp[0]=-\infty$ and $dp[i]=\infty$ for all $i>1$.\\
+            To add $A[k]$, we search for the biggest element in $dp[i]$ which satisfies $dp[i] < A[k]$, and then we make $dp[i+1]=A[k]$, it becomes the best ending for a sequence of $i+1$ elements.\\
+            In fact, since $dp$ is a growing array, we can use binary search to find the actual value to replace.
+            \begin{lstlisting}
+for (int i = 1; i <= n; ++i) dp[i] = INF;
+dp[0] = -INF;
+for (int i = 1; i <= n; ++i) 
+{
+	int lo = 0, hi = n;
+    while (lo < hi) 
+    {
+		int mid = lo + (hi - lo) / 2; // This is the binary search part
+		if (a[i] >= dp[mid]) lo = mid+1;
+		else hi = mid;
+	}
+	dp[lo+1] = a[i];
+}
+            \end{lstlisting}
+
     \section{Matrix}
         \subsection{Cutting to the Chase}
             It can be slow if not done properly.\\
@@ -260,10 +433,17 @@ int mat[9][9] =  // constructing matrix column by column
         \textit{Attacking Recursions},
         I, Me and Myself.
         From: https://zobayer.blogspot.com/2009/12/cse-102-attacking-recursion.html
+    \bibitem{mini}
+        Miguel Mini,
+        \textit{Dynamic Programming 2},
+        miguelAlessandro's CompetitiveProgramming,
+        From: https://github.com/miguelAlessandro/CompetitiveProgramming
     \bibitem{danalex}
         \textit{Matrix},
         DanAlex's blog,
         From: https://codeforces.com/blog/entry/21189
+
+
 \end{thebibliography}
 
 \end{document}

@@ -24,8 +24,8 @@ All credit goes to the ones who made the readings, which are cited at the end of
 
 I am just starting on most coding platforms, but if you want to check me out you can find me as:
 
-| Platform | Username | Rating |
-| :--- | :--- | :---: | 
-| Codeforces | kiwiAipom | 404 |
-| CodeChef | kiwiAipom | Unrated |
-| AtCoder | kiwiAipom | Unrated |
+|  **Platform** | **Username** | **Rating** |
+| :---: | :---: | :---: |
+|  Codeforces | kiwiAipom | 404 |
+|  CodeChef | kiwiAipom | Unrated |
+|  AtCoder | kiwiAipom | Unrated |

@@ -157,6 +157,111 @@ void rec(int cur_node)
             Complexity ends up being $O(N^3)$, $N$ being the maximum number of nodes between the trees.
         
     \section{Another DP on Trees Tutorial}
+        \subsection{Lowest Common Ancestor}
+            This technique is known as \textbf{binary lifting.} It allows you to find the LCA in $\lg{n}$. Basically the lowest node that serves as root for the subtree that includes both nodes.\\
+            So while we are doing \textit{I am pretty sure he said DFS}, we can obtain the depth of $L[\mu]$ ($\mu$ being a node), which is equal to $1+L[parent]$. Now let us create the following:
+            $$p[\mu][0]=parent$$
+            $p$ is a 2d array of space $n\lg{n}$. Where $p[\mu][i]$ means the ancester of $\mu$, $2^i$ steps up. So suppose that $x = P[\mu][i]$, then $P[\mu][i+1] = P[x][i]$.\\
+            We can get $P[\mu][0]$ for all $\mu$, and then we can get the rest of the array easily in $n\lg{n}$. Having $N$ values of $\mu$ and $\lg{n}$ values of $i$.\\
+            So, suppose that you have nodes $u,v$, suppose \textit{without loss of generalization} that $L[u] \geq L[v]$ (if not you can "swap" which one is your $u,v$ to achieve this). Move from $u$ upwards until you reach the node $x$ that is the same level as $v$.\\
+            So suppose the difference between $L[v]$ and $L[u]$ is $Z$, how do we know how to jump towards it in $\lg{n}$ time. The steps are:
+            \begin{enumerate}
+                \item Take the greatest factor of $2$ that is $\leq Z$
+                \item Jumpthose many steps
+                \item Substract that from $Z$
+                \item Go to step one again. Until $Z=0$s
+            \end{enumerate}
+            So now we have 2 cases:
+            \begin{enumerate}
+                \item $u = v$ which happens when $v$ is an ancestor of $u$. In this case just return $v$
+                \item They are not equal, but they are now at the same level. So we can take the distance to their common ancestor as $Y$. Though we don't know its value
+            \end{enumerate}
+            Let's have an $i$ which iterates from the highest power of 2 towards 1. If $P[u][i] \neq P[v][i]$, I move both nodes $i$ steps upwards. Keep doing this an you will eventually arrive to the point where the common ancestor is their parent. Then simply return $P[u][0]$.\\
+            \begin{center}
+                \includegraphics[width=0.15\textwidth]{lcaExample.png}
+            \end{center}
+            \subsubsection{Example: Distance between u and v} 
+                It's easy. Compute the tree, then find the LCA of $u,v$ which we will not as $w$ and then the distance would be:
+                $$L[u]+L[v]-2L[w]$$
+            \subsubsection{Implementation}
+                This is the code for the $dfs$ function which get us the levels. We start with $1,0$ as parameters.
+                \begin{lstlisting}
+void dfs(int u, int par)
+{
+    L[u] = 1 + L[par];
+    P[u][0] = par;
+        for(int v:g[u])
+        {
+            if (v == par) continue;
+            dfs(v, u);
+        }
+}
+                \end{lstlisting}
+                And the code for the LCA is the following:
+                \begin{lstlisting}
+int lca(int u, int v)
+{
+    int i, lg;
+    if(L[u] < L[v]) swap(u, v);
+    for(lg = 0; (1<<lg) <= L[u]; lg++); // Finding the greatest power of 2
+    lg--;
+    if (u == v)
+        return u;
+    for(i = lg; i >= 0; i--)
+    {
+        if (P[u][i] != -1 and P[u][i] != P[v][i])
+            u = P[u][i], v = P[v][i];
+    }
+    return P[u][0];
+}
+                \end{lstlisting}
+                A few lines of code that I found interesting in the \texttt{main} were:
+                \begin{lstlisting}
+for(i = 1; i < LG; i++)
+{
+    Fo(j, 1, n+1) // A macro
+        if(P[j][i-1] != -1)
+            P[j][i] =P[P[j][i-1]][i-1];
+}
+                \end{lstlisting}
+                Might come in handy.
+        \subsection{Application in Competitive Programming}
+            The problem we are going to solve is: \textit{Fafa and Ancient Mathematics} from Codeforces Round \#465 (Div.2).\\
+            An \textit{Ahmed Arithmetic Expression (AAE)} is:
+            \begin{itemize}
+                \item "$d$", where $d$ is a one-digit positive integer.
+                \item "$(E_1opE_2)$" where $E_1,E_2$ are AAE, and $op$ is $+,-$
+            \end{itemize}
+            You have an expression but don't know the operators. Find the max possible value after putting the operators in. You are given how many $+$ and $-$ operators there are.\\
+            \textbf{Examples:}
+            \begin{lstlisting}
+Input:
+    (1?1)
+    1 0
+Output: 2
+Input: 
+    (2?(1?2))
+    1 1
+Output: 1
+            \end{lstlisting}
+            In the tree that we are gonna make from the expression, \textbf{the leafs will be the digits}. Any non-leaf node will be a $?$ that will be filled with plus or minus. Each of them has 2 children which are the operands.\\
+            The first thing we need to do is to build the tree, keeping in mind that the order of the operands matters ($2-3\neq 3-2$). So then:
+            \begin{itemize}
+                \item If the sign is $+$, we want the max value from the left and right operand.
+                \item If the sign is $-$, we want the max value from the left and min from the right.
+            \end{itemize}
+            So let's take these 2 cases, and consider than in each we have $p$ plus signs, and $m$ minus signs. We have to consider all cases.\\
+            \textbf{If we choose Plus} we will have $p - 1$ symbols to distribute between the left subtree (let's say $x$) and the right one ($p-1-x$). Knowing we have $count$ number of $?$ in the left subtree, then the number of minus symbols in the left subtree will be $count - x$. Something similar will happen in the right onw, which will have another value of $count$, and the amount of minus will be $count - (p-1-x)$.\\
+            \textbf{If we choose Minus} Then we will have $max(x, count-x)$ on the left subtree, but in the right subtree we will go with $min(p-x, count-(p-x))$.\\
+            So we will have to $DP$ states that we want to check. They will look like this:
+            $$max(\mu,p,m)$$
+            $$min(\mu,p,m)$$
+            Now how do we minimize the value. Well, that depends on what value do we choose for the node $v$ again.\\
+            \textbf{If we choose Plus} Then we shall try to minimize the value on the left side, and in the right side.\\
+            \textbf{If we choose Minus} Then we shall try to minimize the value on the left side, and maximize the value on the right side.\\
+            So basically we have 2 DP going on at the same time.\\
+            By constraints we know that the value of $\mu$ can go all the way to $10^4$, and its value is defined by $count$, and since $m$ is defined by $count-p$ we \textbf{don't} need a third dimension for our $dp$. In fact, this value can be re-stated as $max(v,p)$ or $max(v,m)$ depending on if $p>m$ or otherwise.\\
+            It's quite a long code, but fun to implement. \textit{Allegedly.}
 
     \section{Algorithms Lecture 1: Sums and Expected Value}
 
@@ -165,5 +270,9 @@ void rec(int cur_node)
             \textit{DP on Trees Tutorial},
             darkshadow's blog,
             From: https://codeforces.com/blog/entry/20935
+        \bibitem{rachi}
+            \textit{Dynamic Programming on Trees}
+            rachitiitr's blog,
+            From: https://codeforces.com/blog/entry/61572
     \end{thebibliography}
 \end{document}

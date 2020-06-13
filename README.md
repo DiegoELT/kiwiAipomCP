@@ -26,6 +26,6 @@ I am just starting on most coding platforms, but if you want to check me out you
 
 |  **Platform** | **Username** | **Rating** |
 | :---: | :---: | :---: |
-|  Codeforces | kiwiAipom | 404 |
+|  Codeforces | kiwiAipom | 636 |
 |  CodeChef | kiwiAipom | Unrated |
 |  AtCoder | kiwiAipom | Unrated |

@@ -251,7 +251,140 @@ insert(root, num, level):
       \begin{center}
         \includegraphics[width=0.25\textwidth]{trieExampleSubProblem.png}
       \end{center}
-  \begin{thebibliography}{}
+  \section{Prefix and Knuth-Morris-Pratt}
+    \subsection{Definition}
+      With string $s$ of length $n$. The \textbf{prefix function} is an array $\pi$ of the same size, where $\pi[i]$ is the length of the longest prefix (that is not the whole string) of $s[0\ldots i]$ that is also a suffix. By definition $\pi[0]=0$.
+      $$\pi[i]=max_{k=0..i}\{k:s[0..k-1]=s[i-(k-1)...i]\}$$
+      \par \textbf{Ex.} $abcabcd = [0,0,0,1,2,3,0]$.
+    \subsection{Trivial Algorithm}
+      Implementation with $O(n^3)$ complexity:
+      \begin{lstlisting}
+vector<int> prefix_function(string s) {
+    int n = (int)s.length();
+  vector<int> pi(n);
+  for (int i = 0; i < n; i++)
+    for (int k = 0; k <= i; k++)
+      if (s.substr(0, k) == s.substr(i-k+1, k))
+        pi[i] = k;
+  return pi;
+}
+      \end{lstlisting}
+    \subsection{Efficient Algorithm}
+      \subsubsection{First Optimization}
+        The values of the prefix function can increase by 1 at most.\par 
+        \textit{Proof:} By contradiction, we could take the suffix ending in $i+1$, with the length $\pi[i+1]$ and remove its last character. Which would result in something better than $\pi[i]$. Like so: 
+        \begin{center}
+          \includegraphics[width=0.35\textwidth]{prefixContradiction.png}
+        \end{center}
+        \par We can see that supposedly $\pi[i]=2,\pi[i+1]=4$. So $s_0s_1s_2s_3 = s_{i-2}s_{i-1}s_is_{i+1}$, so $s_0s_1s_2=s_{i-2}s_{i-1}s_i$, so $\pi[i]=3$ really.\par 
+        So the value can only vary by one, so our complexity reduces to $O(n^2)$, since it can grow/decreease at most $n$, performin $O(n)$ string comparisons.
+      \subsubsection{Second Optimization}
+        Use information computed in previous steps.\par 
+        Supposing we want to compute $i+1$. If $s[i+1]=s[\pi[i]]$ then $\pi[i+1]=\pi[i]+1$, since the suffix at $i$ of length $\pi[i]$ is equal to prefix of the same length. Like so:
+        \begin{center}
+          \includegraphics[width = 0.35\textwidth]{prefixOptExample.png}
+        \end{center}
+        \par If $s[i+1]\neq s[\pi[i]]$, we need to move to a shorter string, or the longest $j$ such that $s[0..j-1]=s[i-j+1...i]$.\par 
+        Then we compare $s[i+1],s[j]$ if they are equal, then $\pi[i+1]=j+1$. Otherwise we need to find the largest value smaller than $j$ that holds this property, which can go all the way to $j=0$, if this happens:
+        \begin{itemize}
+          \item $s[i+1]=s[0]$, then $\pi[i+1]=1$
+          \item $\pi[i+1]=0$ otherwise.
+        \end{itemize}
+        \par The only remaining apr is to find the lengths for $j$. It has to be the value of $\pi[j-1]$ which we have calculated earlier. 
+      \subsubsection{Final Algorithm}
+        Doesn't perform string comparisons, only $O(n)$ operations.
+        \begin{itemize}
+          \item We compute the prefix values $\pi[i]$ in a loop from $i=1..n-1$ ($\pi[0]=0$)
+          \item To alculate it, we set the variable $j$ denoting the length of the best suffix for $i-1$. Initially $j=\pi[i-1]$
+          \item $s[j]=s[i]?$ to test if the suffix of length $j+1$ is also a prefix, if it is $\pi[i]=j+1$, otherwise $j=\pi[j-1]$ and repeat.
+          \item If we reach 0 and still don't have a match, just go with 0.
+        \end{itemize}
+      \subsubsection{Implementation}
+        \begin{lstlisting}
+vector<int> prefix_function(string s) {
+  int n = (int)s.length();
+  vector<int> pi(n);
+  for (int i = 1; i < n; i++) {
+    int j = pi[i-1];
+    while (j > 0 && s[i] != s[j])
+      j = pi[j-1];
+    if (s[i] == s[j])
+      j++;
+    pi[i] = j;
+  }
+  return pi;
+}
+        \end{lstlisting}
+        \par It processes the data as it arrives (so you can read the string one by one). If we know beforehand the max value $M$ the prefix function can take on the string, we can only store $M+1$ characters of the string and the values of the function.
+    \subsection{Applications}
+      \subsubsection{Search for a substring in a string}
+        Display all the positions of all occurrences of the string $s$ (size $n$) in the text $t$ (size $m$).\par 
+        Generate $s+\#+t$ (\# being a separator). We get the prefix function, and we care about the values after the first $n+1$ entries. If $\pi[i]$ shows the longes length of a substring ending in $i$ that coincides with the prefix, in our case it means the largest block that coincides with $s$ and ends at $i$. If $\pi[i]=n$ appears, it means that the string $s$ appears completely in this position (\textbf{it ends on it}).\par 
+        In simpler terms, if $\pi[i]=n\to i-2n$ is the position in the string $t$ in which $s$ appears.\par
+        A further optimization is not storing the whole string and function, but only $s+\#$ and its prefix function. And then read a character at a time for $t$. $O(n+m)$ time.
+      \subsubsection{Number of ocurrences of each prefix}
+        Count the appearances of $s[0..i]$ in the same string. Another variation is finding them in another string $t$.\par 
+        \textbf{First problem:} Consider $\pi[i]$, remember this means that the prefix of that length appears and ends on that $i$. We can have shorter prefixes that end at this position. Which is kind of a question we already answered: Given a prefix of size $j$, what is the next smallest suffix that also ends at $i$. We can obtaine this like: $\pi[\pi[i]-1],\pi[\pi[\pi[i]-1]-1],\ldots$. Implemented like:
+        \begin{lstlisting}
+vector<int> ans(n + 1);
+for (int i = 0; i < n; i++)
+  ans[pi[i]]++;
+for (int i = n-1; i > 0; i--)
+  ans[pi[i-1]] += ans[i];
+for (int i = 0; i <= n; i++)
+  ans[i]++;
+        \end{lstlisting}
+        \par First we count how may times it occurs in the array $\pi$, and then compute. If the length prefix $i$ appears exactly $ans[i]$ times, this number must be added to the number of occurences of its longest suffix that is also a prefix (what...).
+      \subsubsection{Number of different substrings in a string}
+        Iterative solution: knowing the current number of different substrings, how to recompute by adding a character to the end.\par 
+        $k$ be the current value, and we add $c$. We now make $t=s+c$ and reverse it. Peform the prefix function and obtain $\pi_{max}$, which is the longest string which appears in $s$. The number of new substrings will be $|s|+1-\pi_{max}$.\par 
+        Since this is done for each character, it's $O(n^2)$. Can also be done with adding at the beginning, or deleting in both ends.
+      \subsubsection{Compressing a string}
+        Smallest string $t$ that can represent $s$ through concatenation of its copies. We only need the length, since $t$ will be a prefix.\par 
+        Compute the prefix function. $k = n-\pi[n-1]$, if $k$ divides $n$, it is the answer, otherwise the answer is $n$.\par 
+        \textbf{Is it the optimum?} Well if it wasn't, the prefix function at the end would be bigger than $n-k$.\par 
+        \textbf{And in the cases it is n?} Well suppose there's an answer $p$ which divides $n$. The value of the prefix function would be greater than $n-p$. The contradiction illustration is like so:
+        \begin{center}
+          \includegraphics[width=0.45\textwidth]{stringCompressionContradiction.png}
+        \end{center}
+      \subsubsection{Building an Automaton}
+        Let's have $s+\#+t$, and due to the separtor, the prefix function $\leq |s|$. We only need to store $s+\#$ and compute the values of the prefix functions for it, and the part of $t$ can be done on the go. We only need the next character $c\in t$ and the value of the prefix function of the previous position. \par 
+        Automaton that has the value of the prefix function and transitions through the next character. The $O(n*26)$ for the letters of the alphabet is the follwing:
+        \begin{lstlisting}
+void compute_automaton(string s, vector<vector<int>>& aut) {
+  s += '#';
+  int n = s.size();
+  vector<int> pi = prefix_function(s);
+  aut.assign(n, vector<int>(26));
+  for (int i = 0; i < n; i++) {
+    for (int c = 0; c < 26; c++) {
+      if (i > 0 && 'a' + c != s[i])
+        aut[i][c] = aut[pi[i-1]][c];
+      else
+        aut[i][c] = i + ('a' + c == s[i]);
+    }
+  }
+}
+        \end{lstlisting}
+        \par Accelerates calculating the prefix function for $s+\#+t$, by building this automaton we don't need to store $s+\#$, since we have its transitions.\par 
+        A less obvious application is when the string is very big and constructed using some rules (like a recursive combination). Like Gray strings:
+        \begin{equation}
+          \begin{aligned}
+            g_1&=a\\
+            g_2&=aba\\
+            g_3&=abacaba\\
+            g_4&=abacabadabacaba
+          \end{aligned}
+        \end{equation}
+        The string grows quickly, but we only needs the value of the prefix function at the start.\par 
+        We also compute $G[i][j]$, which is the value of processing the string $g_i$ starting in $j$, and $K[i][j]$, the number of occurences of $s$ in $g_i$, during the processing of $g_i$ starting with $j$. $K[k][0]$ being our answer.\par 
+        We start with $G[0][j]=j$ and $K[0][j]=0$. The rest can be calculated with the automaton. Remember $g_i=g_{i-1}+alphabet[i]=g_{i-1}$:
+        $$mid = aut[G[i-1][j]][i]$$
+        $$G[i][j]=G[i-1][mid]$$
+        \par Then finally, to obtain $K[i][j]$:
+        $$=K[i-1][j]+(mid==|s|)+K[i-1][mid]$$
+        \par So, to solve these kind of problems we construct the automaton of the prefix function and then calculate the transitions in for each pattern by using the previous results. \textbf{Further Investigate on that.}
+    \begin{thebibliography}{}
     \bibitem{manacher}
       \textit{Manacher's Algorithm - Finding all sub-palindromes in $O(N)$},
       jakobkogler for E-maxx.
@@ -264,5 +397,9 @@ insert(root, num, level):
       \textit{Tutorial on Trie and example problems},
       Lalit Kundo,
       From: https://www.quora.com/q/threadsiiithyderabad/Tutorial-on-Trie-and-example-problems
+    \bibitem{prefixkmp}
+      \textit{Prefix function. Knuth-Morris-Pratt Algorithm},
+      tcNickolas for E-maxx.
+      From: https://cp-algorithms.com/string/prefix-function.html
   \end{thebibliography}
 \end{document}
